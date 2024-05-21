@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: todoapp-frontend
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://gitlab.com/opsteam5423721/ThreeTier-App-Deployment-Demo.git
+    targetRevision: ops-branch1
+    path: K8S-Manifest/Frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: threetier-app
+
+  syncPolicy:
+    syncOptions:     
+    - CreateNamespace=true 
+    
+    automated:
+      selfHeal: true
+      prune: true
+      
+
+    
+    
