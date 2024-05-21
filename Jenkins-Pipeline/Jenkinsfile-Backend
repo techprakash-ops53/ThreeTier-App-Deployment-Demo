@@ -28,7 +28,7 @@ pipeline {
         stage('Checkout Git') {
             steps {
        	       script {
-                    checkout scmGit(branches: [[name: '*/dev-branch1']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cred', url: 'https://github.com/techprakashtp/ThreeTierApp-Deployment.git']])
+                    checkout scmGit(branches: [[name: '*/dev-branch1']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cred', url: 'https://github.com/techprakash-ops53/ThreeTier-App-Deployment-Demo.git']])
                      withCredentials([gitUsernamePassword(credentialsId: 'github-cred', gitToolName: 'Git')]) { 
 		    sh '''
                     git config user.name "techprakashtp"
@@ -72,7 +72,7 @@ pipeline {
            	    }
             steps {
        	        script {
-                      checkout scmGit(branches: [[name: '*/ops-branch1']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cred', url: 'https://github.com/techprakashtp/ThreeTierApp-Deployment.git']])
+                      checkout scmGit(branches: [[name: '*/ops-branch1']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cred', url: 'https://github.com/techprakash-ops53/ThreeTier-App-Deployment-Demo.git']])
                        	
 			dir('K8S-Manifest/Backend') {
 
