@@ -1,0 +1,8 @@
+vpc-name      = "Jenkins-Vpc"
+igw-name      = "Jenkins-igw"
+subnet-name   = "Jenkins-Subnet"
+rt-name       = "Jenkins-route-table"
+sg-name       = "Jenkins-sg"
+instance-name = "Jenkins-Instance"
+key_pair_name = "JK-Key"
+iam-role      = "Jenkins-iam-role"
