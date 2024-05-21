@@ -1,0 +1,112 @@
+
+pipeline {
+     agent any
+
+      tools{
+	     jdk  'jdk17'
+	     maven 'maven3'
+	    }
+
+  	environment {
+    	  IMAGE_NAME='jprakash1/todoapp-frontend'
+    	  CONTAINER_NAME = 'todoapp-frontend-container'
+    	  GITHUB_CRED = credentials('github-cred')
+    	  DOCKERHUB_CRED_ = credentials('docker-hub-cred')
+	  SCANNER_HOME= tool 'sonarqube'
+  	    }
+
+  	parameters {
+        string(
+            name: 'BASE_VERSION',
+            defaultValue: '1.0.0',
+            description: 'Enter the base version for the Docker image'
+        )
+    }
+
+
+    stages {         
+        stage('Checkout Git') {
+            steps {
+       	       script {
+                    checkout scmGit(branches: [[name: '*/dev-branch1']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cred', url: 'https://github.com/techprakashtp/ThreeTierApp-Deployment.git']])
+                     withCredentials([gitUsernamePassword(credentialsId: 'github-cred', gitToolName: 'Git')]) { 
+		    sh '''
+                    git config user.name "techprakashtp"
+		    git config user.email "jyotiprakashnk49@gmail.com"  
+
+		   ''' 
+          	     }
+            	}
+       	    }  	
+	}	
+        
+        stage('Build Image') {         
+            steps{  
+                script {  
+                    dir('ToDo-Frontend-App') {         
+                    def fullVersion = "${params.BASE_VERSION}.${env.BUILD_NUMBER}"
+                    sh "docker build -t ${IMAGE_NAME}:${fullVersion} ."   
+                    echo "Docker Image of Version ${IMAGE_NAME}:${params.BASE_VERSION}.${BUILD_NUMBER} Image Build Completed"
+
+		    }
+                }
+            }
+        }
+		
+        stage('Push Image') {
+            steps {
+                script {
+               	    withDockerRegistry(credentialsId: 'docker-hub-cred', toolName: 'Docker') {
+                    def fullVersion = "${params.BASE_VERSION}.${env.BUILD_NUMBER}"
+                    docker.image("${IMAGE_NAME}:${fullVersion}").push()
+                    echo "Docker Image of Version ${IMAGE_NAME}:${params.BASE_VERSION}.${BUILD_NUMBER} Image Push to Docker Hub Completed"
+                    }
+                }
+            }
+    	}
+
+        stage('UpdateManifest') {
+		  environment {
+                  GIT_REPO_NAME = "ThreeTierApp-Deployment.git"
+                  GIT_USER_NAME = "techprakashtp"
+           	    }
+            steps {
+       	        script {
+                      checkout scmGit(branches: [[name: '*/ops-branch1']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cred', url: 'https://github.com/techprakashtp/ThreeTierApp-Deployment.git']])
+                       	
+			dir('K8S-Manifest/Frontend') {
+
+			echo "Build Number ${BUILD_NUMBER} in UpdateManifest Stage"
+			echo "Full Version Number ${params.BASE_VERSION}.${BUILD_NUMBER} in UpdateManifest Stage"
+			echo "Images Name With Full Version Number ${IMAGE_NAME}:${params.BASE_VERSION}.${BUILD_NUMBER} in UpdateManifest Stage"
+
+		     def fullVersion = "${params.BASE_VERSION}.${env.BUILD_NUMBER}"
+
+		     sh "cat deployment.yaml"
+		     sh "sed -i 's+${IMAGE_NAME}.*+${IMAGE_NAME}:${params.BASE_VERSION}.${env.BUILD_NUMBER}+g' deployment.yaml"
+		     	
+		     sh "cat deployment.yaml"
+		     sh "git add -A"
+
+                    sh "git commit -am 'Update k8s frontend deployment manifest file Image to version ${params.BASE_VERSION}.${BUILD_NUMBER}' "
+                    sh "git push https://${GITHUB_CRED}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:ops-branch1"
+
+                 
+                    }
+                }
+            }
+        } 
+
+        stage('Running Image') {
+            steps {
+              sh "docker run -d --name ${CONTAINER_NAME} ${IMAGE_NAME}:${params.BASE_VERSION}.${env.BUILD_NUMBER}"
+            }         
+        }
+        
+        stage('Stop Container') {
+            steps {
+               sh "docker stop ${CONTAINER_NAME}"
+            }           
+        }    	
+    }
+}
